@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KAVACH-BMS | Autonomous High-Altitude BMS & Virtual-Sensing Console</title>
+  <meta name="description" content="Kinetic & Autonomous Virtual-Sensing Architecture for Contested High-Altitude Battery Management Systems">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: ['selector', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          colors: {
+            abyss: 'var(--bg-abyss)',
+            tacticalCyan: 'var(--accent-cyan)',
+            tacticalEmerald: 'var(--accent-emerald)',
+            tacticalAmber: 'var(--accent-amber)',
+            tacticalCrimson: 'var(--accent-crimson)',
+            tacticalViolet: 'var(--accent-violet)',
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Tactical Liquid Glass Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-abyss text-slate-100 antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- Tactical Ambient Mesh Background & Particle HUD Canvas -->
+  <div class="tactical-mesh-bg"></div>
+  <canvas id="hud-canvas"></canvas>
+
+  <!-- Top Sticky Tactical Command Bar -->
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/70 border-b border-white/10 px-4 lg:px-8 py-3 transition-all">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Logo and Unit Identity -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-600/30 border border-cyan-400/40 flex items-center justify-center shadow-[0_0_15px_rgba(0,242,254,0.3)]">
+          <svg class="w-5 h-5 text-tacticalCyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-display font-bold text-lg tracking-wider text-white">KAVACH<span class="text-tacticalCyan">-BMS</span></span>
+            <span class="text-[10px] font-mono tracking-widest px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">TACTICAL AVIONICS · TRL-6</span>
+          </div>
+          <div class="text-[11px] font-mono text-slate-400 hidden sm:block">Autonomous High-Altitude Battery Management & Virtual-Sensing Twin</div>
+        </div>
+      </div>
+
+      <!-- Live Pack Status Indicator & Source Badge -->
+      <div class="flex items-center gap-3">
+        <div id="top-status-badge" class="glass-pill border-slate-700 text-slate-400 bg-slate-900/40">
+          <span id="top-status-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+          <span id="top-status-text" class="font-semibold">HARDWARE: NOT CONNECTED</span>
+        </div>
+
+        <div id="telemetry-source-badge" class="glass-pill border-slate-700 text-slate-400 bg-slate-900/40 hidden md:inline-flex">
+          SOURCE: DISCONNECTED (NO LIVE DATA)
+        </div>
+
+        <div id="data-freshness-badge" class="glass-pill border-slate-700 text-slate-400 bg-slate-900/40 text-[10px] hidden lg:inline-flex">
+          LAST PKT: NEVER
+        </div>
+      </div>
+
+      <!-- Action Center: Theme Toggle, Audio, Hardware Connect, Docs Modal, Demo Tour -->
+      <div class="flex items-center gap-2">
+        <!-- Dark / Light Mode Toggle -->
+        <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle Dark / Light Mode">
+          <span id="theme-icon">☀️</span>
+        </button>
+
+        <!-- Audio Synth Toggle -->
+        <button id="audio-toggle-btn" class="btn-tactical py-1.5 px-2.5 text-xs" title="Toggle Tactical Audio Effects">
+          <span id="audio-icon">🔊</span>
+        </button>
+
+        <!-- Hardware Connect Drawer Button -->
+        <button id="open-hardware-btn" class="btn-tactical py-1.5 px-3 text-xs border-cyan-500/40 text-cyan-300 hover:border-cyan-400 bg-cyan-950/30">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span class="font-semibold">Hardware Link</span>
+        </button>
+
+        <!-- Embedded Documentation Reader -->
+        <button id="open-docs-btn" class="btn-tactical py-1.5 px-3 text-xs border-slate-600 text-slate-300 hover:text-white">
+          <svg class="w-3.5 h-3.5 text-tacticalViolet" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          <span>Specs & TRD</span>
+        </button>
+
+        <!-- 3-Minute Guided Walkthrough -->
+        <button id="start-tour-btn" class="btn-tactical btn-cyan py-1.5 px-3 text-xs font-semibold">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Feature Walkthrough</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Hardware Connection Modal / Drawer -->
+  <div id="hardware-modal" class="tactical-modal-overlay">
+    <div class="tactical-modal-content p-6 space-y-5 max-w-xl">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded bg-cyan-950 text-tacticalCyan border border-cyan-800">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-base text-white">HARDWARE TELEMETRY INTEGRATION</h3>
+            <div class="text-xs font-mono text-slate-400">Connect Physical BMS Hardware via USB Serial, WebSocket or Custom Gateway</div>
+          </div>
+        </div>
+        <button id="close-hardware-btn" class="text-slate-400 hover:text-white text-xl p-1">&times;</button>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Connection Method Selector -->
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3">
+          <div class="font-display font-semibold text-xs text-white">METHOD 1: DIRECT USB SERIAL (ESP32 / ESP32-S3 / STM32)</div>
+          <p class="text-xs text-slate-300">Communicates over Web Serial API directly with microcontrollers streaming JSON telemetry.</p>
+          <div class="flex flex-wrap items-center gap-3 font-mono text-xs">
+            <label class="text-slate-400">Baud Rate:</label>
+            <select id="serial-baud-select" class="bg-slate-950 border border-white/20 rounded px-2 py-1 text-slate-200">
+              <option value="115200" selected>115200 bps</option>
+              <option value="9600">9600 bps</option>
+              <option value="57600">57600 bps</option>
+              <option value="921600">921600 bps</option>
+            </select>
+            <button id="modal-serial-btn" class="btn-tactical btn-cyan py-1.5 px-4 text-xs font-semibold">
+              Open USB Serial Port
+            </button>
+            <button id="modal-disconnect-btn" class="btn-tactical btn-crimson py-1.5 px-3 text-xs hidden">
+              Disconnect Port
+            </button>
+          </div>
+          <div class="text-[11px] font-mono text-slate-400">
+            Expected JSON format: <code class="text-cyan-300">{"c1":3.71, "c2":3.70, "c3":3.71, "c4":3.72, "i":4.85, "t_surf":25.2, "voc":24.5}</code>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3">
+          <div class="font-display font-semibold text-xs text-white">METHOD 2: FASTAPI BACKEND WEBSOCKET (Wi-Fi / MQTT / CAN Bridge)</div>
+          <p class="text-xs text-slate-300">Receives telemetry from local FastAPI server aggregating CAN/RS485/MQTT packet streams.</p>
+          <div class="flex items-center gap-2 font-mono text-xs">
+            <input id="ws-url-input" type="text" value="ws://localhost:8000/ws/telemetry" class="bg-slate-950 border border-white/20 rounded px-2.5 py-1 text-slate-200 flex-1 text-xs">
+            <button id="modal-ws-btn" class="btn-tactical btn-emerald py-1.5 px-4 text-xs font-semibold">
+              Connect WebSocket
+            </button>
+          </div>
+        </div>
+
+        <!-- Raw Packet Monitor -->
+        <div class="p-3 rounded-xl bg-slate-950 border border-white/10 space-y-1.5 font-mono text-xs">
+          <div class="flex items-center justify-between text-slate-400 text-[11px]">
+            <span>LIVE SERIAL PACKET MONITOR (RAW RX):</span>
+            <span id="raw-pkt-status" class="text-slate-500">AWAITING FRAMES</span>
+          </div>
+          <div id="raw-packet-preview" class="p-2 rounded bg-slate-900 border border-white/5 text-[11px] text-cyan-300 truncate">
+            No frames received yet. Open USB Serial port to begin acquisition.
+          </div>
+        </div>
+
+        <div class="p-3 rounded-lg bg-amber-950/20 border border-amber-600/30 text-amber-300 text-xs font-mono">
+          ⚠️ <strong>DATA INTEGRITY POLICY:</strong> The command console strictly renders live data when hardware is connected. If disconnected, cards show "NO LIVE DATA" to prevent false confidence during operational readiness.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Guided Walkthrough Banner (Hidden by default) -->
+  <div id="demo-tour-banner" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-[92%] glass-panel-elevated p-4 border border-cyan-400 bg-slate-950/95 shadow-[0_0_35px_rgba(0,242,254,0.4)] animate-bounce-subtle">
+    <div class="flex items-start justify-between gap-4">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span id="demo-tour-step" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-900/60 text-cyan-300 border border-cyan-500">Step 1 of 4</span>
+          <h4 id="demo-tour-title" class="font-display font-bold text-white text-sm">Walkthrough Step</h4>
+        </div>
+        <p id="demo-tour-desc" class="text-xs text-slate-300 leading-relaxed">Description of this operational phase.</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="demo-tour-next-btn" class="btn-tactical btn-cyan py-1 px-3 text-xs">Next Step &rarr;</button>
+        <button id="demo-tour-close-btn" class="text-slate-400 hover:text-white text-xs px-2 py-1">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Command Center Body -->
+  <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
+
+    <!-- Master KPI Telemetry Grid (Real Hardware Stream) -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Card 1: Regulated Mission Bus -->
+      <div class="glass-panel p-4 hud-corners space-y-2">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+          <span>REGULATED MISSION BUS</span>
+          <span id="kpi-bus-status-tag" class="data-unavailable text-[10px]">NO LIVE DATA</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="kpi-bus-v" class="font-mono text-3xl font-bold tracking-tight text-slate-500">—</span>
+          <span class="font-mono text-sm text-slate-400">V</span>
+        </div>
+        <div class="flex items-center justify-between text-xs font-mono pt-1 border-t border-white/5 text-slate-400">
+          <div>Load: <span id="kpi-bus-i" class="text-slate-500 font-semibold">—</span> A</div>
+          <div>Power: <span id="kpi-bus-p" class="text-slate-500 font-semibold">—</span> W</div>
+        </div>
+      </div>
+
+      <!-- Card 2: Pack Topology State -->
+      <div class="glass-panel p-4 hud-corners space-y-2">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+          <span>ACTIVE PACK TOPOLOGY</span>
+          <span id="kpi-topology-badge" class="data-unavailable text-[10px]">AWAITING SENSORS</span>
+        </div>
+        <div id="kpi-topology" class="font-mono text-base font-semibold text-slate-400 pt-1">
+          <span>NOT CONNECTED</span>
+        </div>
+        <div class="text-[11px] font-mono text-slate-400 pt-1 border-t border-white/5">
+          Degraded tolerance: <span class="text-tacticalCyan font-semibold">Solid-State Bypass Ready</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Digital Twin Thermal Estimator -->
+      <div class="glass-panel p-4 hud-corners space-y-2">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+          <span>THERMAL STATE OBSERVER</span>
+          <span class="text-amber-400 font-semibold text-[10px]">2-NODE KALMAN</span>
+        </div>
+        <div class="flex items-baseline gap-3">
+          <div class="flex items-baseline gap-1">
+            <span id="kpi-core-temp" class="font-mono text-3xl font-bold tracking-tight text-slate-500">—</span>
+            <span class="font-mono text-xs text-slate-400">°C (Core)</span>
+          </div>
+          <div class="text-xs font-mono text-slate-400">
+            Surf: <span id="kpi-surf-temp" class="text-slate-500 font-semibold">—</span>°C
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-xs font-mono pt-1 border-t border-white/5 text-slate-400">
+          <span>Internal Gradient &Delta;T:</span>
+          <span id="kpi-delta-temp" class="text-slate-500 font-semibold">—</span>
+        </div>
+      </div>
+
+      <!-- Card 4: AI Prognostics & SOH/RUL -->
+      <div class="glass-panel p-4 hud-corners space-y-2">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+          <span>AI HEALTH PROGNOSTICS</span>
+          <span class="text-tacticalViolet font-semibold text-[10px]">1D-CNN + TCN</span>
+        </div>
+        <div class="flex items-baseline gap-3">
+          <div class="flex items-baseline gap-1">
+            <span id="kpi-soh" class="font-mono text-3xl font-bold tracking-tight text-slate-500">—</span>
+            <span class="font-mono text-xs text-slate-400">SOH</span>
+          </div>
+          <div class="text-xs font-mono text-slate-400">
+            RUL: <span id="kpi-rul" class="text-slate-500 font-semibold">—</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-xs font-mono pt-1 border-t border-white/5 text-slate-400">
+          <span id="kpi-model-status">Awaiting hardware telemetry</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Centerpiece Section: Dynamic 4S Pack Schematic & Tactical Cell Matrix -->
+    <section class="glass-panel p-5 space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-3">
+        <div>
+          <h3 class="font-display font-bold text-base text-white tracking-wide flex items-center gap-2">
+            <span>TACTICAL 4S1P TOPOLOGY & HARDWARE BYPASS SCHEMATIC</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">SOLID-STATE MOSFET SWITCHING</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Live current paths, solid-state cell bypass contactors, and synchronous boost converter stage.</p>
+        </div>
+        <div class="text-xs font-mono text-slate-400 flex items-center gap-3">
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-tacticalEmerald"></span> Nominal Path</div>
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-tacticalAmber"></span> Solid-State Bypass</div>
+          <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-tacticalCrimson"></span> Fault / Trip</div>
+        </div>
+      </div>
+
+      <!-- Animated SVG Circuit Schematic -->
+      <div class="w-full overflow-x-auto py-2 bg-slate-950/60 rounded-xl border border-white/5 p-4 flex justify-center">
+        <svg id="tactical-pack-svg" class="w-full max-w-4xl h-44 select-none" viewBox="0 0 850 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+          
+          <!-- Circuit Background Grid Marks -->
+          <pattern id="grid-dots" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="rgba(255, 255, 255, 0.04)" />
+          </pattern>
+          <rect width="850" height="140" fill="url(#grid-dots)" />
+
+          <!-- Main Power Rail Top & Bottom -->
+          <!-- Pack Positive Terminal -->
+          <circle cx="40" cy="70" r="12" fill="#0D1424" stroke="#00F2FE" stroke-width="2" />
+          <text x="36" y="75" font-family="JetBrains Mono" font-size="14" fill="#00F2FE" font-weight="bold">+</text>
+
+          <!-- Cell 1 Schematic -->
+          <rect id="svg-cell-1-box" x="75" y="45" width="45" height="50" rx="4" fill="#0E1626" stroke="#64748B" stroke-width="2" />
+          <text x="88" y="74" font-family="JetBrains Mono" font-size="11" fill="#94A3B8" font-weight="bold">C1</text>
+          
+          <!-- Wire C1 to C2 -->
+          <line x1="120" y1="70" x2="155" y2="70" stroke="#64748B" stroke-width="2" class="circuit-line inactive" id="svg-wire-c1-c2" />
+
+          <!-- Cell 2 Schematic (Fault & Bypass Subject) -->
+          <rect id="svg-cell-2-box" x="155" y="45" width="45" height="50" rx="4" fill="#0E1626" stroke="#64748B" stroke-width="2" />
+          <text x="168" y="74" font-family="JetBrains Mono" font-size="11" fill="#94A3B8" font-weight="bold">C2</text>
+          <text id="svg-cell-2-state" x="135" y="112" font-family="JetBrains Mono" font-size="9" fill="#94A3B8">STANDBY</text>
+
+          <!-- Normal Series Path through C2 -->
+          <line id="svg-bus-line-c2" x1="200" y1="70" x2="235" y2="70" stroke="#64748B" stroke-width="2" class="circuit-line inactive" />
+
+          <!-- Solid-State Bypass Path around C2 (Top Arc) -->
+          <path id="svg-bypass-line" d="M 140 70 L 140 28 L 215 28 L 215 70" stroke="rgba(255, 255, 255, 0.2)" stroke-width="2" fill="none" class="circuit-line inactive" />
+          
+          <!-- Bypass Contactor / Switch Element -->
+          <circle cx="177" cy="28" r="4" fill="#050811" stroke="#F59E0B" stroke-width="1.5" />
+          <circle cx="197" cy="28" r="4" fill="#050811" stroke="#F59E0B" stroke-width="1.5" />
+          <line id="svg-bypass-switch" x1="177" y1="28" x2="195" y2="18" stroke="rgba(255, 255, 255, 0.4)" stroke-width="2.5" stroke-linecap="round" />
+          <text x="155" y="16" font-family="JetBrains Mono" font-size="8" fill="#F59E0B">MOSFET BYPASS</text>
+
+          <!-- Wire C2 to C3 -->
+          <line id="svg-wire-c2-c3" x1="235" y1="70" x2="270" y2="70" stroke="#64748B" stroke-width="2" class="circuit-line inactive" />
+
+          <!-- Cell 3 Schematic -->
+          <rect id="svg-cell-3-box" x="270" y="45" width="45" height="50" rx="4" fill="#0E1626" stroke="#64748B" stroke-width="2" />
+          <text x="283" y="74" font-family="JetBrains Mono" font-size="11" fill="#94A3B8" font-weight="bold">C3</text>
+
+          <!-- Wire C3 to C4 -->
+          <line id="svg-wire-c3-c4" x1="315" y1="70" x2="350" y2="70" stroke="#64748B" stroke-width="2" class="circuit-line inactive" />
+
+          <!-- Cell 4 Schematic -->
+          <rect id="svg-cell-4-box" x="350" y="45" width="45" height="50" rx="4" fill="#0E1626" stroke="#64748B" stroke-width="2" />
+          <text x="363" y="74" font-family="JetBrains Mono" font-size="11" fill="#94A3B8" font-weight="bold">C4</text>
+
+          <!-- Wire C4 to Main Contactor -->
+          <line id="svg-wire-c4-main" x1="395" y1="70" x2="445" y2="70" stroke="#64748B" stroke-width="2" class="circuit-line inactive" />
+
+          <!-- Main Safety Contactor -->
+          <circle cx="445" cy="70" r="4" fill="#050811" stroke="#64748B" stroke-width="1.5" />
+          <circle cx="475" cy="70" r="4" fill="#050811" stroke="#64748B" stroke-width="1.5" />
+          <line id="svg-main-contactor" x1="445" y1="70" x2="475" y2="70" stroke="#64748B" stroke-width="3" stroke-linecap="round" />
+          <text x="430" y="92" font-family="JetBrains Mono" font-size="8" fill="#CBD5E1">MAIN RELAY</text>
+
+          <!-- Synchronous DC-DC Boost Converter Box -->
+          <rect id="svg-boost-converter" x="515" y="40" width="115" height="60" rx="6" fill="#0C1B2A" stroke="#00F2FE" stroke-width="1.5" />
+          <text x="525" y="62" font-family="JetBrains Mono" font-size="9.5" fill="#00F2FE" font-weight="bold">DC-DC BOOST</text>
+          <text x="525" y="78" font-family="JetBrains Mono" font-size="8" fill="#94A3B8">3S (11.1V) &rarr; 12.0V</text>
+          <text x="525" y="92" font-family="JetBrains Mono" font-size="8" fill="#10B981">EFFICIENCY: 94.2%</text>
+
+          <!-- Output Flow to Regulated Avionics Bus -->
+          <line id="svg-output-flow" x1="630" y1="70" x2="710" y2="70" stroke="#64748B" stroke-width="2.5" class="circuit-line inactive" />
+
+          <!-- Mission Avionics Load Box -->
+          <rect x="710" y="38" width="105" height="64" rx="6" fill="#111B33" stroke="#8B5CF6" stroke-width="1.8" />
+          <text x="722" y="60" font-family="JetBrains Mono" font-size="10" fill="#E2E8F0" font-weight="bold">AVIONICS BUS</text>
+          <text x="722" y="76" font-family="JetBrains Mono" font-size="9" fill="#00F2FE">12.0V REGULATED</text>
+          <text x="722" y="90" font-family="JetBrains Mono" font-size="8.5" fill="#10B981">THRUST PRESERVED</text>
+        </svg>
+      </div>
+
+      <!-- 4 Individual Cell Metric Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Cell 1 -->
+        <div id="cell-card-1" class="glass-panel cell-card disconnected p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-display font-bold text-white text-sm">CELL 01</span>
+            <span id="cell-1-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">DISCONNECTED</span>
+          </div>
+          <div class="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+            <div id="cell-1-bar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-1.5 rounded-full" style="width: 0%"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div><span class="text-slate-400">Volt:</span> <span id="cell-1-v" class="text-slate-500 font-semibold">— V</span></div>
+            <div><span class="text-slate-400">R_int:</span> <span id="cell-1-r" class="text-slate-500">— mΩ</span></div>
+            <div><span class="text-slate-400">Surf T:</span> <span id="cell-1-tsurf" class="text-slate-500">— °C</span></div>
+            <div><span class="text-slate-400">Core T:</span> <span id="cell-1-tcore" class="text-slate-500 font-semibold">— °C</span></div>
+          </div>
+        </div>
+
+        <!-- Cell 2 -->
+        <div id="cell-card-2" class="glass-panel cell-card disconnected p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-display font-bold text-white text-sm">CELL 02</span>
+            <span id="cell-2-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">DISCONNECTED</span>
+          </div>
+          <div class="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+            <div id="cell-2-bar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-1.5 rounded-full" style="width: 0%"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div><span class="text-slate-400">Volt:</span> <span id="cell-2-v" class="text-slate-500 font-semibold">— V</span></div>
+            <div><span class="text-slate-400">R_int:</span> <span id="cell-2-r" class="text-slate-500">— mΩ</span></div>
+            <div><span class="text-slate-400">Surf T:</span> <span id="cell-2-tsurf" class="text-slate-500">— °C</span></div>
+            <div><span class="text-slate-400">Core T:</span> <span id="cell-2-tcore" class="text-slate-500 font-semibold">— °C</span></div>
+          </div>
+        </div>
+
+        <!-- Cell 3 -->
+        <div id="cell-card-3" class="glass-panel cell-card disconnected p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-display font-bold text-white text-sm">CELL 03</span>
+            <span id="cell-3-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">DISCONNECTED</span>
+          </div>
+          <div class="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+            <div id="cell-3-bar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-1.5 rounded-full" style="width: 0%"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div><span class="text-slate-400">Volt:</span> <span id="cell-3-v" class="text-slate-500 font-semibold">— V</span></div>
+            <div><span class="text-slate-400">R_int:</span> <span id="cell-3-r" class="text-slate-500">— mΩ</span></div>
+            <div><span class="text-slate-400">Surf T:</span> <span id="cell-3-tsurf" class="text-slate-500">— °C</span></div>
+            <div><span class="text-slate-400">Core T:</span> <span id="cell-3-tcore" class="text-slate-500 font-semibold">— °C</span></div>
+          </div>
+        </div>
+
+        <!-- Cell 4 -->
+        <div id="cell-card-4" class="glass-panel cell-card disconnected p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-display font-bold text-white text-sm">CELL 04</span>
+            <span id="cell-4-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">DISCONNECTED</span>
+          </div>
+          <div class="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+            <div id="cell-4-bar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-1.5 rounded-full" style="width: 0%"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div><span class="text-slate-400">Volt:</span> <span id="cell-4-v" class="text-slate-500 font-semibold">— V</span></div>
+            <div><span class="text-slate-400">R_int:</span> <span id="cell-4-r" class="text-slate-500">— mΩ</span></div>
+            <div><span class="text-slate-400">Surf T:</span> <span id="cell-4-tsurf" class="text-slate-500">— °C</span></div>
+            <div><span class="text-slate-400">Core T:</span> <span id="cell-4-tcore" class="text-slate-500 font-semibold">— °C</span></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- LIVE HARDWARE TELEMETRY STREAM & ANOMALY DETECTOR -->
+    <section id="hardware-stream-panel" class="glass-panel p-5 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-3">
+        <div>
+          <h3 class="font-display font-bold text-base text-white tracking-wide flex items-center gap-2">
+            <span>LIVE HARDWARE TELEMETRY STREAM & ANOMALY DETECTOR</span>
+            <span id="hw-stream-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700">NO LIVE DATA</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Physical USB Serial / WebSocket telemetry stream with continuous health checks and validated OCV-SOC algorithms.</p>
+        </div>
+        <div class="flex items-center gap-3 text-xs font-mono">
+          <div class="p-1.5 px-3 rounded bg-slate-900/80 border border-white/10 text-slate-300">
+            Packets: <span id="hw-pkt-count" class="text-white font-bold">0</span> | Rate: <span id="hw-pkt-rate" class="text-tacticalCyan font-bold">0 Hz</span>
+          </div>
+          <button id="hw-quick-connect-btn" class="btn-tactical btn-cyan py-1.5 px-3 text-xs">
+            ⚡ Connect Hardware
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Anomaly Banner (Dynamic alerts for over-temp, over-volt, under-volt, imbalance) -->
+      <div id="hw-anomaly-banner" class="p-3 rounded-xl bg-slate-900/60 border border-white/10 text-xs font-mono flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-600" id="hw-anomaly-dot"></span>
+          <span id="hw-anomaly-text" class="text-slate-400">Status: Disconnected. Awaiting physical BMS stream via USB Serial.</span>
+        </div>
+        <div class="flex items-center gap-4 text-[11px] text-slate-400">
+          <span>Cell Spread (&Delta;V): <strong id="hw-delta-v" class="text-slate-300">—</strong></span>
+          <span>Max Cell: <strong id="hw-max-cell" class="text-slate-300">—</strong></span>
+          <span>Min Cell: <strong id="hw-min-cell" class="text-slate-300">—</strong></span>
+        </div>
+      </div>
+
+      <!-- Live Electrical Graph (Bus Voltage & Current vs Timestamp) -->
+      <div class="h-64 w-full relative">
+        <canvas id="electrical-chart"></canvas>
+        <div id="hw-empty-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/70 backdrop-blur-sm rounded-lg border border-white/5 space-y-2">
+          <svg class="w-8 h-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <div class="text-xs font-mono text-slate-300 font-semibold">NO PHYSICAL HARDWARE CONNECTED</div>
+          <div class="text-[11px] font-mono text-slate-500">Connect your ESP32 or BMS via USB Serial (115200 baud) to view live continuous electrical dynamics.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- INDEPENDENT PROBLEM MODULES (SEPARATE INTERACTIVE CONTROLS) -->
+    <!-- ======================================================== -->
+
+    <!-- PROBLEM MODULE 1: Cell Fault Isolation & Solid-State Bypass -->
+    <section id="module-fault-isolation" class="glass-panel p-5 space-y-4 border border-cyan-500/20">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded bg-cyan-950/60 border border-cyan-700 text-tacticalCyan">
+            <span class="font-mono font-bold text-sm">P1</span>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-base text-white flex items-center gap-2">
+              <span>PROBLEM 1: INTERNAL CELL FAULT & SOLID-STATE BYPASS</span>
+              <span class="sim-badge">⚠️ SIMULATION</span>
+            </h3>
+            <p class="text-xs text-slate-400">Micro-short fault isolation and active bus preservation via synchronous DC-DC boost compensation.</p>
+          </div>
+        </div>
+        
+        <!-- Operating Doctrine Selector for this problem -->
+        <div class="doctrine-switch-container">
+          <button id="doctrine-btn-degraded" class="doctrine-btn active degraded">
+            <span class="w-2 h-2 rounded-full bg-tacticalCyan"></span>
+            <span>KAVACH_DEGRADED (MISSION CRITICAL)</span>
+          </button>
+          <button id="doctrine-btn-strict" class="doctrine-btn">
+            <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+            <span>CIVILIAN_STRICT (FULL TRIP)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Interactive Controls -->
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3">
+          <div class="font-mono text-xs font-semibold text-slate-300">CONFIGURABLE FAULT PARAMETERS</div>
+          
+          <div class="space-y-2 font-mono text-xs">
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Target Cell:</label>
+              <span class="text-white font-semibold">Cell 02</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Fault Resistance (R_fault):</label>
+              <input id="prob1-rfault" type="number" step="1" value="148" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">mΩ</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Target Regulated Bus:</label>
+              <input id="prob1-targetbus" type="number" step="0.1" value="12.0" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">V</span>
+            </div>
+          </div>
+
+          <div class="pt-2 flex flex-col gap-2">
+            <button id="prob1-trigger-btn" class="btn-tactical btn-crimson justify-center py-2 text-xs font-semibold">
+              ⚡ Trigger Cell 2 Micro-Short
+            </button>
+            <button id="prob1-reset-btn" class="btn-tactical btn-emerald justify-center py-2 text-xs font-semibold">
+              🔄 Clear & Reset Pack to Nominal
+            </button>
+          </div>
+        </div>
+
+        <!-- Calculated Physics & Diagnostic Output -->
+        <div class="lg:col-span-2 p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3 font-mono text-xs">
+          <div class="font-semibold text-slate-300 flex items-center justify-between">
+            <span>ISOLATION & POWER BUS CONVERTER STATE</span>
+            <span id="prob1-status-pill" class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400">AWAITING TRIGGER</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+            <div class="p-2.5 rounded bg-slate-950/70 border border-white/5">
+              <div class="text-slate-400 text-[11px]">Solid-State Contactor:</div>
+              <div id="prob1-switch-state" class="text-white font-bold text-sm mt-0.5">CLOSED (SERIES)</div>
+            </div>
+            <div class="p-2.5 rounded bg-slate-950/70 border border-white/5">
+              <div class="text-slate-400 text-[11px]">Isolation Latency:</div>
+              <div id="prob1-latency" class="text-tacticalCyan font-bold text-sm mt-0.5">— ms</div>
+            </div>
+            <div class="p-2.5 rounded bg-slate-950/70 border border-white/5">
+              <div class="text-slate-400 text-[11px]">Boost Duty Cycle (D):</div>
+              <div id="prob1-duty-cycle" class="text-tacticalEmerald font-bold text-sm mt-0.5">0.0% (PASSTHRU)</div>
+            </div>
+            <div class="p-2.5 rounded bg-slate-950/70 border border-white/5">
+              <div class="text-slate-400 text-[11px]">Pack Raw Output (V):</div>
+              <div id="prob1-pack-raw-v" class="text-white font-bold text-sm mt-0.5">— V</div>
+            </div>
+            <div class="p-2.5 rounded bg-slate-950/70 border border-white/5">
+              <div class="text-slate-400 text-[11px]">Regulated Avionics Rail:</div>
+              <div id="prob1-regulated-v" class="text-tacticalCyan font-bold text-sm mt-0.5">— V</div>
+            </div>
+            <div class="p-2.5 rounded bg-slate-950/70 border border-white/5">
+              <div class="text-slate-400 text-[11px]">Mission Preservation:</div>
+              <div id="prob1-mission-outcome" class="text-slate-400 font-bold text-sm mt-0.5">—</div>
+            </div>
+          </div>
+
+          <div class="p-2.5 rounded bg-slate-950/40 border border-white/5 text-[11px] text-slate-400">
+            <strong>Physics Law:</strong> Under degraded operation, bypass MOSFET shunts Cell 2 ($R_{ds(on)} \approx 1.2\,\text{m}\Omega$). Boost stage operates at duty cycle $D = 1 - \frac{V_{in}}{V_{out}} = 1 - \frac{11.1\text{V}}{12.0\text{V}} \approx 7.5\%$ to guarantee uninterrupted thrust.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROBLEM MODULE 2: Thermal Digital Twin & Kalman Estimator -->
+    <section id="module-thermal-twin" class="glass-panel p-5 space-y-4 border border-amber-500/20">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded bg-amber-950/60 border border-amber-700 text-tacticalAmber">
+            <span class="font-mono font-bold text-sm">P2</span>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-base text-white flex items-center gap-2">
+              <span>PROBLEM 2: THERMAL DIGITAL TWIN & KALMAN CORE ESTIMATOR</span>
+              <span class="sim-badge">⚠️ SIMULATION</span>
+            </h3>
+            <p class="text-xs text-slate-400">Resolves 90–180s casing diffusion lag by estimating internal core temperature ($T_{core}$) from surface thermistors.</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-2 font-mono text-xs">
+          <button id="prob2-run-btn" class="btn-tactical btn-cyan py-1.5 px-3 text-xs font-semibold">▶ Run Twin</button>
+          <button id="prob2-step-btn" class="btn-tactical py-1.5 px-3 text-xs">⏭ Step (1s)</button>
+          <button id="prob2-reset-btn" class="btn-tactical py-1.5 px-3 text-xs">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Configurable Parameters -->
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3 font-mono text-xs">
+          <div class="font-semibold text-slate-300">PHYSICS MODEL PARAMETERS (2-NODE ODE)</div>
+          
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Core Heat Cap (C_core):</label>
+              <input id="prob2-ccore" type="number" step="1" value="65.0" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">J/K</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Surf Heat Cap (C_surf):</label>
+              <input id="prob2-csurf" type="number" step="0.5" value="14.0" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">J/K</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Core-Surf Res (R_cs):</label>
+              <input id="prob2-rcs" type="number" step="0.05" value="1.95" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">K/W</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Surf-Amb Res (R_sa):</label>
+              <input id="prob2-rsa" type="number" step="0.1" value="3.40" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">K/W</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Ambient Temp (T_amb):</label>
+              <input id="prob2-tamb" type="number" step="1" value="22.0" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">°C</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Applied Load (I_load):</label>
+              <input id="prob2-iload" type="number" step="0.5" value="5.0" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">A</span>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-white/5 space-y-1 text-[11px] text-slate-400">
+            <div>Joule Heat Gen: <span id="prob2-qjoule" class="text-tacticalCyan font-semibold">0.81 W</span></div>
+            <div>Core-to-Surf Gradient: <span id="prob2-gradient" class="text-amber-400 font-semibold">+1.6 °C</span></div>
+            <div>Thermal Time Constant (&tau;): <span class="text-white font-semibold">27.3 s</span></div>
+          </div>
+        </div>
+
+        <!-- Live Thermal Chart -->
+        <div class="lg:col-span-2 p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="font-display font-semibold text-xs text-white">DUAL-STREAM TELEMETRY: CORE KALMAN vs MEASURED SURFACE</div>
+            <div class="text-[10px] font-mono text-slate-400 flex items-center gap-3">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-tacticalCyan"></span> Estimated Core</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-tacticalAmber"></span> Measured Surface</span>
+            </div>
+          </div>
+          <div class="h-60 w-full">
+            <canvas id="thermal-twin-chart"></canvas>
+          </div>
+          <div class="text-[10px] font-mono text-slate-400 flex justify-between pt-1">
+            <span>Equation: $C_{c}\dot{T}_{c} = Q_{gen} - (T_{c}-T_{s})/R_{cs}$</span>
+            <span class="text-tacticalCyan font-semibold">Kalman Innovation Filter Online</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROBLEM MODULE 3: Pre-Runaway Multi-Stage Early Diagnostics -->
+    <section id="module-early-diagnostics" class="glass-panel p-5 space-y-4 border border-rose-500/20">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded bg-rose-950/60 border border-rose-700 text-tacticalCrimson">
+            <span class="font-mono font-bold text-sm">P3</span>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-base text-white flex items-center gap-2">
+              <span>PROBLEM 3: PRE-RUNAWAY MULTI-STAGE EARLY DIAGNOSTICS</span>
+              <span class="sim-badge">⚠️ SIMULATION</span>
+            </h3>
+            <p class="text-xs text-slate-400">Three sequential precursor indicators offering up to 300s advance notice before thermal casing event.</p>
+          </div>
+        </div>
+
+        <div id="diag-banner-text" class="text-xs font-mono bg-slate-900/90 px-3 py-1.5 rounded-lg border border-white/10">
+          <span class="text-emerald-400 font-medium">✓ All 3 Early Diagnostic stages nominal.</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- Stage 1 -->
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3 font-mono text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-300 font-semibold">STAGE 1: OHMIC DRIFT</span>
+            <div id="diag-stage1-led" class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981]"></div>
+          </div>
+          <div class="text-[11px] text-slate-400">Tracks rapid &Delta;V/&Delta;I impedance rise from internal micro-shorts.</div>
+          <div class="flex items-baseline justify-between pt-1 border-t border-white/5">
+            <span class="text-slate-400">Reading:</span>
+            <span id="diag-stage1-val" class="text-white font-semibold">33.1 mΩ (Base: 33 mΩ)</span>
+          </div>
+          <div class="text-[10px] text-tacticalCyan font-semibold">Detection Window: 180s - 300s advance</div>
+          <button id="prob3-trigger-stage1" class="w-full btn-tactical py-1 text-[11px] justify-center">
+            Simulate Ohmic Shift (+25mΩ)
+          </button>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3 font-mono text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-300 font-semibold">STAGE 2: VOC OFF-GAS SENSOR</span>
+            <div id="diag-stage2-led" class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981]"></div>
+          </div>
+          <div class="text-[11px] text-slate-400">BME680 gas sensor detects electrolyte venting before thermal spike.</div>
+          <div class="flex items-baseline justify-between pt-1 border-t border-white/5">
+            <span class="text-slate-400">Reading:</span>
+            <span id="diag-stage2-val" class="text-white font-semibold">24.5 ppm (Limit: 150)</span>
+          </div>
+          <div class="text-[10px] text-amber-400 font-semibold">Detection Window: 60s - 120s advance</div>
+          <button id="prob3-trigger-stage2" class="w-full btn-tactical btn-amber py-1 text-[11px] justify-center">
+            Simulate VOC Spike (184 ppm)
+          </button>
+        </div>
+
+        <!-- Stage 3 -->
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3 font-mono text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-300 font-semibold">STAGE 3: CORE KALMAN HOTSPOT</span>
+            <div id="diag-stage3-led" class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981]"></div>
+          </div>
+          <div class="text-[11px] text-slate-400">Physics observer alerts when core exceeds safe boundary (65°C).</div>
+          <div class="flex items-baseline justify-between pt-1 border-t border-white/5">
+            <span class="text-slate-400">Reading:</span>
+            <span id="diag-stage3-val" class="text-white font-semibold">26.8 °C (Limit: 65°C)</span>
+          </div>
+          <div class="text-[10px] text-rose-400 font-semibold">Detection Window: Real-time internal state</div>
+          <button id="prob3-trigger-stage3" class="w-full btn-tactical btn-crimson py-1 text-[11px] justify-center">
+            Simulate Core Surge (68°C)
+          </button>
+        </div>
+
+      </div>
+
+      <div class="flex justify-end pt-1">
+        <button id="prob3-reset-btn" class="btn-tactical py-1.5 px-4 text-xs">
+          Clear Diagnostic Test Triggers
+        </button>
+      </div>
+    </section>
+
+    <!-- PROBLEM MODULE 4: Sub-Zero Cold-Weather Pulse Warming -->
+    <section id="module-pulse-warming" class="glass-panel p-5 space-y-4 border border-cyan-500/20">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded bg-cyan-950/60 border border-cyan-700 text-tacticalCyan">
+            <span class="font-mono font-bold text-sm">P4</span>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-base text-white flex items-center gap-2">
+              <span>PROBLEM 4: SUB-ZERO HIGH-ALTITUDE PULSE WARMING</span>
+              <span class="sim-badge">⚠️ SIMULATION</span>
+            </h3>
+            <p class="text-xs text-slate-400">Prevents irreversible lithium plating during cold-weather charging in high-altitude environments (-18°C).</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="prob4-set-cold-btn" class="btn-tactical py-1.5 px-3 text-xs">
+            Apply -18°C Profile
+          </button>
+          <button id="prob4-toggle-warm-btn" class="btn-tactical btn-cyan py-1.5 px-4 text-xs font-semibold">
+            Start AC Pulse Warming
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Configuration -->
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3 font-mono text-xs">
+          <div class="font-semibold text-slate-300">WARMING PARAMETERS</div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Ambient Temperature:</label>
+              <input id="prob4-cold-temp" type="number" step="1" value="-18.0" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">°C</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Target Pre-Heat Temp:</label>
+              <input id="prob4-target-temp" type="number" step="1" value="5.0" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">°C</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">AC Frequency:</label>
+              <span class="text-white font-semibold">1.0 kHz</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">AC Excitation Current:</label>
+              <span class="text-tacticalCyan font-semibold">3.5 A RMS</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress & Physics -->
+        <div class="lg:col-span-2 p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3 font-mono text-xs">
+          <div class="flex justify-between text-slate-300">
+            <span>Core Pre-Heat Progress (Current: <span id="pulse-temp-text" class="text-tacticalCyan font-bold">— °C</span> &rarr; Target: +5.0 °C)</span>
+            <span id="pulse-percent-text" class="text-tacticalEmerald font-bold">0%</span>
+          </div>
+          <div class="w-full bg-slate-900 rounded-full h-3 overflow-hidden p-0.5 border border-white/10">
+            <div id="pulse-progress-bar" class="bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 text-[11px]">
+            <div class="p-2 rounded bg-slate-950/60 border border-white/5">
+              <div class="text-slate-400">Charging Gate Status:</div>
+              <div id="prob4-charge-lock" class="text-tacticalCrimson font-bold mt-0.5">LOCKED (COLD)</div>
+            </div>
+            <div class="p-2 rounded bg-slate-950/60 border border-white/5">
+              <div class="text-slate-400">Warming Power (I²R):</div>
+              <div id="prob4-warm-power" class="text-tacticalCyan font-bold mt-0.5">0.0 W</div>
+            </div>
+            <div class="p-2 rounded bg-slate-950/60 border border-white/5">
+              <div class="text-slate-400">Plating Risk Index:</div>
+              <div id="prob4-plating-risk" class="text-emerald-400 font-bold mt-0.5">ZERO (AC BALANCE)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROBLEM MODULE 5: Second-Life Assessment & Electrochemical Prognostics -->
+    <section id="module-second-life" class="glass-panel p-5 space-y-4 border border-violet-500/20">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded bg-violet-950/60 border border-violet-700 text-tacticalViolet">
+            <span class="font-mono font-bold text-sm">P5</span>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-base text-white flex items-center gap-2">
+              <span>PROBLEM 5: SECOND-LIFE BATTERY PASSPORT & ICA PROGNOSTICS</span>
+              <span class="sim-badge">⚠️ SIMULATION / TEST EVALUATION</span>
+            </h3>
+            <p class="text-xs text-slate-400">Incremental Capacity Analysis (dQ/dV) tracks degradation and certifies retired traction packs for stationary storage.</p>
+          </div>
+        </div>
+
+        <button id="generate-passport-btn" class="btn-tactical btn-cyan py-1.5 px-4 text-xs font-semibold">
+          Issue Second-Life Passport
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Configuration & Parameters -->
+        <div class="p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-3 font-mono text-xs">
+          <div class="font-semibold text-slate-300">PACK HEALTH SPECIFICATIONS</div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Current Health (SOH):</label>
+              <input id="prob5-soh" type="number" step="0.5" value="82.5" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">%</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Nominal Capacity:</label>
+              <input id="prob5-cap" type="number" step="1" value="48.0" class="sim-input text-right">
+              <span class="text-slate-400 ml-1">Ah</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="text-slate-400">Target Application:</label>
+              <select id="prob5-app" class="bg-slate-950 border border-white/20 rounded px-2 py-1 text-slate-200 text-xs">
+                <option value="STATIONARY_BESS" selected>Stationary Microgrid</option>
+                <option value="TELECOM_UPS">Telecom Backup UPS</option>
+                <option value="CAMP_LIGHTING">Tactical Camp Lighting</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-white/5 space-y-1 text-[11px] text-slate-400">
+            <div>Assigned Grade: <span id="prob5-grade" class="text-tacticalEmerald font-semibold">GRADE B · ESS</span></div>
+            <div>Derated Current: <span id="prob5-derated-i" class="text-white font-semibold">3.64 A (0.5C)</span></div>
+            <div>Remaining Useful Life: <span id="prob5-rul" class="text-tacticalCyan font-semibold">154 Cycles</span></div>
+          </div>
+        </div>
+
+        <!-- ICA dQ/dV Chart -->
+        <div class="lg:col-span-2 p-4 rounded-xl bg-slate-900/60 border border-white/10 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="font-display font-semibold text-xs text-white">INCREMENTAL CAPACITY ANALYSIS (dQ/dV): DEGRADATION MECHANISMS</div>
+            <div class="text-[10px] font-mono text-slate-400 flex items-center gap-3">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-tacticalEmerald"></span> Fresh 100%</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-tacticalCyan"></span> Evaluated Pack</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-tacticalAmber"></span> Second-Life Cutoff</span>
+            </div>
+          </div>
+          <div class="h-56 w-full">
+            <canvas id="ica-chart"></canvas>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-400 pt-1">
+            <div>Peak 1 (3.44V): Ohmic shift tracks Loss of Lithium Inventory (LLI)</div>
+            <div>Peak 2 (3.88V): Peak area loss tracks Loss of Active Material (LAM)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Real-Time Tactical Event Audit Log Stream -->
+    <section class="glass-panel p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <div class="flex items-center gap-2">
+          <h4 class="font-display font-bold text-sm text-white">SYSTEM AUDIT & TELEMETRY EVENT STREAM</h4>
+          <span class="pulse-dot cyan"></span>
+        </div>
+        <span class="text-[10px] font-mono text-slate-400">CRYPTOGRAPHIC EVENT TRAIL</span>
+      </div>
+
+      <!-- Log Scroll Stream Container -->
+      <div id="tactical-log-stream" class="h-44 overflow-y-auto space-y-1 pr-2 font-mono text-xs">
+        <!-- Dynamic Log Entries Inserted by app.js -->
+      </div>
+
+      <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-2 border-t border-white/5">
+        <span>Standard: ISO 15118 & IEC 62619 Traceable Logging</span>
+        <span class="text-slate-500">Auto-flushing (Max 50 memory buffer)</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-12 border-t border-white/10 bg-slate-950/80 px-4 lg:px-8 py-6 text-xs font-mono text-slate-400">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+      <div>
+        <div class="text-slate-300 font-semibold">KAVACH-BMS · Kinetic & Autonomous Virtual-Sensing Architecture</div>
+        <div class="text-slate-500 text-[11px] mt-0.5">
+          Tactical Avionics & Contested High-Altitude Battery Management Platform.
+        </div>
+      </div>
+      <div class="flex items-center gap-4 text-slate-400">
+        <a href="#module-fault-isolation" class="hover:text-cyan-400 transition-colors">Fault Isolation</a>
+        <a href="#module-thermal-twin" class="hover:text-cyan-400 transition-colors">Thermal Twin</a>
+        <button onclick="document.getElementById('open-docs-btn').click()" class="hover:text-cyan-400 transition-colors">Documentation</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal 1: Second-Life Battery Passport Certificate -->
+  <div id="passport-modal" class="tactical-modal-overlay">
+    <div class="tactical-modal-content p-6 space-y-6">
+      
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-violet-950/80 border border-violet-500/50 flex items-center justify-center text-tacticalViolet">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-lg text-white">SECOND-LIFE BATTERY PASSPORT</h3>
+            <div class="text-xs font-mono text-tacticalCyan">CIRCULAR REUSE CERTIFICATE · IEC 62619 COMPLIANT</div>
+          </div>
+        </div>
+        <button id="close-passport-btn" class="text-slate-400 hover:text-white text-xl p-1">&times;</button>
+      </div>
+
+      <!-- Passport Certificate Body -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Left: QR Code & Verification Tag -->
+        <div class="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-950 border border-white/10 space-y-3">
+          <div class="w-36 h-36 bg-white p-2 rounded-lg flex items-center justify-center">
+            <svg class="w-32 h-32" viewBox="0 0 100 100" fill="#050811">
+              <rect x="0" y="0" width="30" height="30" />
+              <rect x="5" y="5" width="20" height="20" fill="white" />
+              <rect x="10" y="10" width="10" height="10" />
+              
+              <rect x="70" y="0" width="30" height="30" />
+              <rect x="75" y="5" width="20" height="20" fill="white" />
+              <rect x="80" y="10" width="10" height="10" />
+
+              <rect x="0" y="70" width="30" height="30" />
+              <rect x="5" y="75" width="20" height="20" fill="white" />
+              <rect x="10" y="80" width="10" height="10" />
+
+              <!-- Center Pattern -->
+              <rect x="40" y="10" width="10" height="10" />
+              <rect x="50" y="25" width="10" height="15" />
+              <rect x="35" y="45" width="30" height="10" />
+              <rect x="45" y="65" width="15" height="15" />
+              <rect x="75" y="40" width="15" height="10" />
+              <rect x="70" y="75" width="20" height="15" />
+            </svg>
+          </div>
+          <div class="text-[10px] font-mono text-center text-slate-400">
+            Scan to verify cryptographic ledger proof
+          </div>
+          <div class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
+            STATUS: VALIDATED
+          </div>
+        </div>
+
+        <!-- Right: Technical Specification & Grading -->
+        <div class="md:col-span-2 space-y-3 font-mono text-xs">
+          <div class="grid grid-cols-2 gap-3 p-3 rounded-lg bg-slate-900/50 border border-white/5">
+            <div>
+              <div class="text-slate-400">Pack UUID:</div>
+              <div id="passport-pack-id" class="text-white font-bold">KBMS-4S-9024</div>
+            </div>
+            <div>
+              <div class="text-slate-400">Issued Timestamp:</div>
+              <div id="passport-date" class="text-slate-300">2026-10-31 00:00:00 UTC</div>
+            </div>
+            <div>
+              <div class="text-slate-400">Retirement SOH:</div>
+              <div id="passport-soh" class="text-tacticalCyan font-bold">82.5%</div>
+            </div>
+            <div>
+              <div class="text-slate-400">Measured Retention:</div>
+              <div id="passport-capacity" class="text-tacticalEmerald font-bold">39.6 Ah</div>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-lg bg-slate-900/50 border border-white/5 space-y-1">
+            <div class="text-slate-400">Assigned Second-Life Classification:</div>
+            <div id="passport-grade" class="text-tacticalEmerald font-bold text-sm">GRADE B · STATIONARY BESS / MICROGRID</div>
+            <div class="text-[11px] text-slate-300">Authorized for remote post solar energy storage, camp lighting, and telecommunications backup. Prohibited from primary flight traction.</div>
+          </div>
+
+          <div class="p-3 rounded-lg bg-slate-900/50 border border-white/5 space-y-1">
+            <div class="text-slate-400">Derated Operating Envelope:</div>
+            <div class="flex justify-between text-slate-300">
+              <span>Max Continuous Discharge:</span>
+              <span id="passport-derated-i" class="text-white font-semibold">3.64 A (0.5C limit)</span>
+            </div>
+            <div class="flex justify-between text-slate-300">
+              <span>Voltage Cutoff Window:</span>
+              <span class="text-white font-semibold">11.2V - 14.2V</span>
+            </div>
+          </div>
+
+          <div class="space-y-0.5">
+            <div class="text-slate-400 text-[10px]">Cryptographic SHA-256 Digest:</div>
+            <div id="passport-hash" class="text-[10px] text-tacticalCyan font-mono break-all p-2 rounded bg-slate-950 border border-cyan-900/40">
+              0x8f4b0000a2e194c798e1fa3729bca01289fe203498bda91204859aef0218
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="flex items-center justify-between border-t border-white/10 pt-4">
+        <div class="text-[11px] text-slate-400">
+          Traceable to ISO 15118 & IEC 62619 Circular Assessment Criteria.
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="print-passport-btn" class="btn-tactical py-1.5 px-4 text-xs">Print Certificate</button>
+          <button onclick="document.getElementById('passport-modal').classList.remove('active')" class="btn-tactical btn-cyan py-1.5 px-4 text-xs font-semibold">Done</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal 2: System Specifications & Documentation Reader -->
+  <div id="docs-modal" class="tactical-modal-overlay">
+    <div class="tactical-modal-content p-6 space-y-4 max-w-4xl">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded bg-cyan-950 text-tacticalCyan border border-cyan-800">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-base text-white">SYSTEM SPECIFICATIONS & ARCHITECTURE DOCS</h3>
+            <div class="text-xs font-mono text-slate-400">Technical Deliverables & Mathematical Formulations</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <select id="docs-select-tab" class="bg-slate-900 border border-white/20 rounded px-2.5 py-1 text-xs font-mono text-cyan-300">
+            <option value="PRD.md">PRD.md (Product Requirements)</option>
+            <option value="TRD.md">TRD.md (Technical Requirements)</option>
+            <option value="ARCHITECTURE.md">ARCHITECTURE.md (System Architecture)</option>
+            <option value="DESIGN.md">DESIGN.md (Liquid Glass Design System)</option>
+            <option value="TECH_STACK.md">TECH_STACK.md (Technologies)</option>
+            <option value="API_SPEC.md">API_SPEC.md (REST & WebSocket)</option>
+            <option value="DATABASE_SCHEMA.md">DATABASE_SCHEMA.md (SQLite Schema)</option>
+            <option value="IMPLEMENTATION_PLAN.md">IMPLEMENTATION_PLAN.md (Phases)</option>
+            <option value="README.md">README.md (Quick Start & Safety)</option>
+          </select>
+          <button id="close-docs-btn" class="text-slate-400 hover:text-white text-xl p-1">&times;</button>
+        </div>
+      </div>
+
+      <div id="docs-modal-body" class="max-h-[65vh] overflow-y-auto p-4 rounded-xl bg-slate-950/80 border border-white/10">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application Logic Script -->
+  <script src="app.js"></script>
+</body>
+</html>
